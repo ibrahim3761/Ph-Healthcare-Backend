@@ -1,6 +1,11 @@
+/** biome-ignore-all lint/style/useConst: <explanation> */
 import bcrypt from "bcryptjs";
 import type { JwtPayload, SignOptions } from "jsonwebtoken";
-import { Role, UserStatus } from "../../../generated/prisma/enums";
+import {
+  AuthProvider,
+  Role,
+  UserStatus,
+} from "../../../generated/prisma/enums";
 import config from "../../config";
 import { prisma } from "../../lib/prisma";
 import { jwtUtils } from "../../utils/jwt";
@@ -10,7 +15,7 @@ import type {
   IRegisterPatientPayload,
   IRequestUser,
 } from "./auth.interface";
-import { OAuth2Client } from "google-auth-library";
+import { OAuth2Client, TokenPayload } from "google-auth-library";
 import { googleClient } from "../../lib/googleAuth";
 
 const registerPatient = async (payload: IRegisterPatientPayload) => {
@@ -91,7 +96,14 @@ const loginUser = async (payload: ILoginUserPayload) => {
     throw new Error("User is deleted");
   }
 
-  const isPasswordMatched = await bcrypt.compare(password, user.password);
+  if(user.password === null && user.googleId !== null){
+    throw new Error("User already registered with Google. Please login with Google.");
+  }
+
+  const isPasswordMatched = await bcrypt.compare(
+    password,
+    user.password as string,
+  );
 
   if (!isPasswordMatched) {
     throw new Error("Invalid credentials");
@@ -192,13 +204,134 @@ const refreshToken = async (token: string) => {
 };
 
 const googleLogin = async (payload: IGoogleLoginPayload) => {
-//   const result = await googleClient.verifyIdToken({
-//     idToken: payload.idToken,
-//   });
+  let googleIdTokenPayload: TokenPayload | null | undefined = null;
+  try {
+    const ticket = await googleClient.verifyIdToken({
+      idToken: payload.idToken,
+      audience: config.google_client_id,
+    });
 
-//   const googleInfo = result.getPayload();
+    googleIdTokenPayload = ticket.getPayload();
+  } catch (error) {
+    console.error("Error occurred while verifying Google ID token:", error);
+    throw new Error("Invalid or Expired Google ID token");
+  }
 
-//   googleInfo.
+  if (!googleIdTokenPayload) {
+    throw new Error("Invalid or Expired Google ID token");
+  }
+
+  if (!googleIdTokenPayload.email) {
+    throw new Error("Email not found in Google ID token");
+  }
+  if (!googleIdTokenPayload.name) {
+    throw new Error("Name not found in Google ID token");
+  }
+
+  const ifPatientExistsWithGoogleAuth = await prisma.user.findUnique({
+    where: {
+      email: googleIdTokenPayload.email,
+      role: Role.PATIENT,
+      googleId: googleIdTokenPayload.sub,
+    },
+  });
+
+  let user = ifPatientExistsWithGoogleAuth;
+
+  if (!ifPatientExistsWithGoogleAuth) {
+    const ifPatientExistsWithCredentials = await prisma.user.findUnique({
+      where: {
+        email: googleIdTokenPayload.email,
+        role: Role.PATIENT,
+        authProvider: AuthProvider.CREDENTIAL,
+      },
+    });
+
+    if (ifPatientExistsWithCredentials) {
+
+      if(ifPatientExistsWithCredentials.emailVerified === false){
+        throw new Error("Please verify your email before logging in with Google");
+      }
+
+      if (ifPatientExistsWithCredentials.status === UserStatus.BLOCKED) {
+        throw new Error("User is blocked");
+      }
+
+      if (
+        ifPatientExistsWithCredentials.isDeleted ||
+        ifPatientExistsWithCredentials.status === UserStatus.DELETED
+      ) {
+        throw new Error("User is deleted");
+      }
+
+      user = await prisma.user.update({
+        where: {
+          id: ifPatientExistsWithCredentials.id,
+        },
+        data: {
+          googleId: googleIdTokenPayload.sub,
+        },
+      });
+    } else {
+      // google register new patient
+      user = await prisma.user.create({
+        data: {
+          name: googleIdTokenPayload.name,
+          email: googleIdTokenPayload.email,
+          role: Role.PATIENT,
+          googleId: googleIdTokenPayload.sub,
+          authProvider: AuthProvider.GOOGLE,
+          emailVerified: true,
+          status: UserStatus.ACTIVE,
+          patient: {
+            create: {
+              name: googleIdTokenPayload.name,
+              email: googleIdTokenPayload.email,
+            },
+          },
+        },
+      });
+    }
+  }
+
+  if(!user){
+    throw new Error("User not found");
+  }
+
+  if (user.status === UserStatus.BLOCKED) {
+    throw new Error("User is blocked");
+  }
+
+  if (
+    user.isDeleted ||
+    user.status === UserStatus.DELETED
+  ) {
+    throw new Error("User is deleted");
+  }
+
+  const jwtPayload = {
+    userId: user.id,
+    name: user.name,
+    email: user.email,
+    role: user.role,
+  };
+
+  const accessToken = jwtUtils.createToken(
+    jwtPayload,
+    config.jwt_access_secret,
+    config.jwt_access_expires_in as SignOptions,
+  );
+
+  const refreshToken = jwtUtils.createToken(
+    jwtPayload,
+    config.jwt_refresh_secret,
+    config.jwt_refresh_expires_in as SignOptions,
+  );
+
+  return {
+    accessToken,
+    refreshToken,
+  };
 };
 
 export const AuthService = {
