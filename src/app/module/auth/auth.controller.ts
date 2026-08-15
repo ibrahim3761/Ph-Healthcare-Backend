@@ -114,7 +114,6 @@ const refreshToken = catchAsync(async (req: Request, res: Response) => {
 });
 
 const googleLogin = catchAsync(async (req: Request, res: Response) => {
-
 	const payload = req.body;
 
 	const result = await AuthService.googleLogin(payload);
@@ -150,5 +149,5 @@ export const AuthController = {
 	loginUser,
 	getMe,
 	refreshToken,
-	googleLogin
+	googleLogin,
 };
