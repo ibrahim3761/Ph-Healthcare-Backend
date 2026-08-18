@@ -15,7 +15,7 @@ const main = async () => {
 		await prisma.$connect();
 		console.log("Connected to the database successfully.");
 
-		await redisClient.connect(); 
+		await redisClient.connect(); // Connect to Redis
 		console.log("Connected to Redis successfully.");
 
 		await seedSuperAdmin(); // Seed the super admin user
