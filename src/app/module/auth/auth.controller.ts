@@ -152,16 +152,15 @@ const googleLogin = catchAsync(async (req: Request, res: Response) => {
 const forgotPassword = catchAsync(async (req: Request, res: Response) => {
 	const payload = req.body;
 
-	const result = await AuthService.forgotPassword(payload);
+	await AuthService.forgotPassword(payload);
 
 	
 
 	sendResponse(res, {
 		statusCode: httpStatus.OK,
 		success: true,
-		message: "Google login endpoint hit successfully",
-		data: {
-		},
+		message: `Otp sent to ${payload.email} successfully`,
+		data: null,
 	});
 });
 
