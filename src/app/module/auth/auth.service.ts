@@ -15,6 +15,7 @@ import type {
 	ILoginUserPayload,
 	IRegisterPatientPayload,
 	IRequestUser,
+	IResetPasswordPayload,
 } from "./auth.interface";
 import { OAuth2Client, type TokenPayload } from "google-auth-library";
 import { googleClient } from "../../lib/googleAuth";
@@ -33,7 +34,7 @@ const registerPatient = async (payload: IRegisterPatientPayload) => {
 		throw new Error("User with this email already exists");
 	}
 
-	const hashedPassword = await bcrypt.hash(password, 8);
+	const hashedPassword = await bcrypt.hash(password, Number(config.bcrypt_salt_rounds));
 
 	const createdUser = await prisma.user.create({
 		data: {
@@ -377,13 +378,69 @@ const forgotPassword = async(payload : IForgotPasswordPayload)=>{
 	await redisClient.set(key,otp,{
 		expiration:{
 			type: "EX",
-			value: 60, 
+			value: 60 * 5, 
 		}
 	})
 
 }
 
-const resetPassword = async(payload : any)=>{}
+const resetPassword = async(payload : IResetPasswordPayload)=>{
+const {email, otp, newPassword} = payload;
+
+	const isUserExist = await prisma.user.findUnique({
+		where : {
+			email
+		}
+	});
+
+	if(!isUserExist){
+		throw new Error("User Does Not Exist!")
+	};
+
+	if(isUserExist.status === "BLOCKED"){
+		throw new Error("User is Blocked")
+	}
+
+	if(!isUserExist.emailVerified){
+		throw new Error("User Not Verified")
+	}
+
+	if(isUserExist.isDeleted || isUserExist.status === "DELETED"){
+		throw new Error("User is Deleted")
+	}
+
+	if(isUserExist.googleId && isUserExist.authProvider === "GOOGLE"){
+		throw new Error("User Has Account With Google")
+	}
+
+	const key = `forget-password-otp:${isUserExist.email}`
+	
+	const redisOtp = await redisClient.get(key)
+
+	if(!redisOtp){
+		throw new Error("OTP Expired or Not Found")
+	}
+
+	if(redisOtp !== otp){
+		throw new Error("Invalid OTP")
+	}
+
+	const hashedPassword = await bcrypt.hash(newPassword, Number(config.bcrypt_salt_rounds));
+
+	await prisma.user.update({
+		where:{
+			email
+		},
+		data:{
+			password : hashedPassword
+		}
+	});
+
+	await redisClient.del([key])
+	
+}
+
+
 export const AuthService = {
 	registerPatient,
 	loginUser,
