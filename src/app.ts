@@ -36,6 +36,8 @@ app.use(cookieParser());
 app.use("/api/v1/auth", AuthRoutes);
 app.use("/api/v1/user", UserRoutes);
 
+
+// Api test 
 app.get("/test", async (req: Request, res: Response, next: NextFunction) => {
 	try {
 		
