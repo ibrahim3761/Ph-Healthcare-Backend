@@ -37,7 +37,7 @@ app.use("/api/v1/auth", AuthRoutes);
 app.use("/api/v1/user", UserRoutes);
 
 
-// Api test 
+// Api test route
 app.get("/test", async (req: Request, res: Response, next: NextFunction) => {
 	try {
 		
