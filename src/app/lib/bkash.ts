@@ -36,7 +36,7 @@ export const getBkashIdTone = async () => {
 
       await redisClient.set(IdTokenKey, bkashIdToken, {
         expiration: {
-          type: "EX",// type
+          type: "EX",
           value: 3600, // 1 hour
         },
       });
