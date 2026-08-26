@@ -15,7 +15,7 @@ import z from "zod";
 import { redisClient } from "./app/lib/redis";
 import crypto from "crypto";
 import { UserRoutes } from "./app/module/user/user.route";
-import { getBkashIdTone } from "./app/lib/bkash";
+import { getBkashIdToken } from "./app/lib/bkash";
 import { AppointmentRoutes } from "./app/module/appointement/appointment.route";
 
 const app: Application = express();
@@ -43,7 +43,7 @@ app.use("/api/v1/appointment", AppointmentRoutes);
 app.get("/test", async (req: Request, res: Response, next: NextFunction) => {
 	try {
 		
-		const grantIdTokenResult = await getBkashIdTone();
+		const grantIdTokenResult = await getBkashIdToken();
 
 		console.log(grantIdTokenResult);
 		
