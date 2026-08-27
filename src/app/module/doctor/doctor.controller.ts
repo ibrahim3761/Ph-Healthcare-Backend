@@ -12,7 +12,9 @@ const applyAsDoctor = catchAsync(async (req: Request, res: Response) => {
   const resume = files?.["resume"] ? files["resume"][0] : null;
   const additionalFiles = files?.["additionalFiles"] || [];
 
-  const zodValidationResult = ApplyAsDoctorValidationZodSchema.safeParse(JSON.parse(req.body.data));
+  const zodValidationResult = ApplyAsDoctorValidationZodSchema.safeParse(
+    JSON.parse(req.body.data),
+  );
 
   if (!zodValidationResult.success) {
     throw new Error(zodValidationResult.error.issues[0].message);
@@ -20,7 +22,11 @@ const applyAsDoctor = catchAsync(async (req: Request, res: Response) => {
 
   const payload = zodValidationResult.data;
 
-  const result = await DoctorServices.applyAsDoctor(payload, resume, additionalFiles);
+  const result = await DoctorServices.applyAsDoctor(
+    payload,
+    resume,
+    additionalFiles,
+  );
 
   sendResponse(res, {
     statusCode: httpStatus.OK,
@@ -30,6 +36,20 @@ const applyAsDoctor = catchAsync(async (req: Request, res: Response) => {
   });
 });
 
+const verifyDoctorEmail = catchAsync(async (req: Request, res: Response) => {
+  const payload = req.body;
+
+  const result = await DoctorServices.verifyDoctorEmail(payload);
+
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: "Doctor Email verified successfully",
+    data: result,
+  });
+});
+
 export const DoctorController = {
   applyAsDoctor,
+  verifyDoctorEmail,
 };
