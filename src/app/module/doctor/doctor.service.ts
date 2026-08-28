@@ -3,15 +3,26 @@ import type { UploadApiResponse } from "cloudinary";
 import crypto from "crypto";
 import ejs from "ejs";
 import path from "path";
-import { Role } from "../../../generated/prisma/enums";
+import {
+  DoctorVerificationStatus,
+  Role,
+} from "../../../generated/prisma/enums";
 import config from "../../config";
 import { cloudinary } from "../../lib/cloudinary";
 import { transporter } from "../../lib/nodemailer";
 import { prisma } from "../../lib/prisma";
 import { redisClient } from "../../lib/redis";
+import {
+  IApplyAsDoctorPayload,
+  IApproveDoctorPayload,
+  IVerifyDoctorEmailPayload,
+} from "./doctor.interface";
+import { AppError } from "../../utils/AppError";
+import httpStatus from "http-status";
+import { RequestUser } from "../../middleware/checkAuth";
 
 const applyAsDoctor = async (
-  payload: any,
+  payload: IApplyAsDoctorPayload,
   resume: Express.Multer.File | null,
   additionalFiles: Express.Multer.File[],
 ) => {
@@ -141,11 +152,140 @@ const applyAsDoctor = async (
   return doctorApplication;
 };
 
-const verifyDoctorEmail = async(payload : any)=>{
+const verifyDoctorEmail = async (payload: IVerifyDoctorEmailPayload) => {
+  const otp = payload.otp;
+  const email = payload.email.trim().toLowerCase();
 
-}
+  const existingUser = await prisma.user.findUnique({
+    where: { email, role: Role.DOCTOR },
+  });
+
+  if (!existingUser) {
+    throw new AppError(
+      httpStatus.NOT_FOUND,
+      "Doctor Application Not Found. Please Apply Again.",
+    );
+  }
+
+  if (existingUser.emailVerified) {
+    throw new AppError(httpStatus.CONFLICT, "Email Already Verified");
+  }
+
+  const otpKey = `doctor-application-otp:${email}`;
+
+  const redisOtp = await redisClient.get(otpKey);
+
+  if (!redisOtp) {
+    throw new AppError(
+      httpStatus.BAD_REQUEST,
+      "OTP Expired. Your Application Window Has Closed, Please Apply Again.",
+    );
+  }
+
+  if (redisOtp !== otp) {
+    throw new AppError(httpStatus.BAD_REQUEST, "OTP Does Not Match");
+  }
+
+  await redisClient.del(otpKey);
+
+  const verifiedUser = await prisma.user.update({
+    where: { id: existingUser.id },
+    data: { emailVerified: true },
+    omit: { password: true },
+    include: { doctor: true },
+  });
+
+  return verifiedUser;
+};
+
+const approveDoctor = async (
+  payload: IApproveDoctorPayload,
+  reviewer: RequestUser,
+) => {
+  const { doctorId, verificationStatus, rejectionReason } = payload;
+
+  const existingDoctor = await prisma.doctor.findUnique({
+    where: { id: doctorId },
+    include: { user: true },
+  });
+
+  if (!existingDoctor) {
+    throw new AppError(httpStatus.NOT_FOUND, "Doctor Application Not Found");
+  }
+
+  if (existingDoctor.isDeleted) {
+    throw new AppError(httpStatus.GONE, "Doctor Application Has Been Deleted");
+  }
+
+  if (!existingDoctor.user.emailVerified) {
+    throw new AppError(
+      httpStatus.BAD_REQUEST,
+      "Doctor Has Not Verified Their Email Yet. Application Cannot Be Reviewed.",
+    );
+  }
+
+  if (existingDoctor.verificationStatus !== DoctorVerificationStatus.PENDING) {
+    throw new AppError(
+      httpStatus.CONFLICT,
+      `Doctor Application Has Already Been ${existingDoctor.verificationStatus.toLowerCase()}`,
+    );
+  }
+
+  if (
+    verificationStatus === DoctorVerificationStatus.REJECTED &&
+    !rejectionReason
+  ) {
+    throw new AppError(
+      httpStatus.BAD_REQUEST,
+      "Rejection Reason Is Required When Rejecting A Doctor Application",
+    );
+  }
+
+  const updatedDoctor = await prisma.doctor.update({
+    where: { id: doctorId },
+    data: {
+      verificationStatus,
+      rejectionReason:
+        verificationStatus === DoctorVerificationStatus.REJECTED
+          ? rejectionReason
+          : null,
+      reviewedBy: reviewer.userId,
+      reviewedAt: new Date(),
+    },
+  });
+
+  const isApproved = verificationStatus === DoctorVerificationStatus.APPROVED;
+
+  const tempatePath = path.join(
+    process.cwd(),
+    `src/app/templates/${
+      isApproved
+        ? "doctor-application-approved.ejs"
+        : "doctor-application-rejected.ejs"
+    }`,
+  );
+
+  const templateData = {
+    name: updatedDoctor.name,
+    reason: updatedDoctor.rejectionReason,
+  };
+
+  const html = await ejs.renderFile(tempatePath, templateData);
+
+  await transporter.sendMail({
+    from: config.email_sender,
+    to: updatedDoctor.email,
+    subject: isApproved
+      ? "Your Doctor Application Has Been Approved"
+      : "Your Doctor Application Has Been Rejected",
+    html,
+  });
+
+  return updatedDoctor;
+};
 
 export const DoctorServices = {
   applyAsDoctor,
-  verifyDoctorEmail
+  verifyDoctorEmail,
+  approveDoctor,
 };
