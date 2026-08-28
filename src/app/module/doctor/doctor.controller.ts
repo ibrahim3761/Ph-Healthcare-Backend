@@ -65,7 +65,6 @@ const approveDoctor = catchAsync(async (req: Request, res: Response) => {
 
 const getAllDoctors = catchAsync(async (req: Request, res: Response) => {
 	
-
 	const {data, meta} = await DoctorServices.getAllDoctors(req.query)
 	sendResponse(res, {
 		statusCode: httpStatus.OK,
