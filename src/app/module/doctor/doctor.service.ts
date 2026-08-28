@@ -141,7 +141,6 @@ const applyAsDoctor = async (
   return doctorApplication;
 };
 
-//doctor verify api
 const verifyDoctorEmail = async(payload : any)=>{
 
 }
