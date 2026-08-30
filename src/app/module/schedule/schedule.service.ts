@@ -542,7 +542,7 @@ const getTodaysSchedules = async (query: IQuery) => {
   };
 };
 
-export const scheduleService = {
+export const ScheduleServices = {
   createSchedule,
   getMySchedules,
   getAllSchedules,
