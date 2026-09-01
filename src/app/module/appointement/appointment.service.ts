@@ -8,10 +8,10 @@ import {
 import config from "../../config";
 import { getBkashIdToken } from "../../lib/bkash";
 import { prisma } from "../../lib/prisma";
-import { RequestUser } from "../../middleware/checkAuth";
+import type { RequestUser } from "../../middleware/checkAuth";
 import { AppError } from "../../utils/AppError";
 import httpStatus from "http-status";
-import {
+import type {
 	IBookAppointmentPayload,
 	ICancelAppointmentPayload,
 	IPayAppointmentPayload,
@@ -19,8 +19,8 @@ import {
 } from "./appointment.interface";
 import { transporter } from "../../lib/nodemailer";
 import PDFDocument from "pdfkit";
-import { ApppointmentWhereInput } from "../../../generated/prisma/models";
-import { IQuery } from "../../interfaces";
+import type { ApppointmentWhereInput } from "../../../generated/prisma/models";
+import type { IQuery } from "../../interfaces";
 
 const bookAppointment = async (
 	payload: IBookAppointmentPayload,

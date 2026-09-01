@@ -1,4 +1,4 @@
-import { UploadApiResponse } from "cloudinary";
+import type { UploadApiResponse } from "cloudinary";
 import httpStatus from "http-status";
 import PDFDocument from "pdfkit";
 import { AppointmentStatus, Role } from "../../../generated/prisma/enums";
@@ -6,9 +6,9 @@ import config from "../../config";
 import { cloudinary } from "../../lib/cloudinary";
 import { transporter } from "../../lib/nodemailer";
 import { prisma } from "../../lib/prisma";
-import { RequestUser } from "../../middleware/checkAuth";
+import type { RequestUser } from "../../middleware/checkAuth";
 import { AppError } from "../../utils/AppError";
-import { ICreatePrescriptionPayload } from "./prescription.interface";
+import type { ICreatePrescriptionPayload } from "./prescription.interface";
 
 const createPrescription = async (
 	payload: ICreatePrescriptionPayload,

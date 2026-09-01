@@ -6,15 +6,15 @@ import {
 	startOfDay,
 } from "date-fns";
 import { prisma } from "../../lib/prisma";
-import { RequestUser } from "../../middleware/checkAuth";
+import type { RequestUser } from "../../middleware/checkAuth";
 import { AppError } from "../../utils/AppError";
-import {
+import type {
 	ICreateSchedulePayload,
 	IUpdateSchedulePayload,
 } from "./schedule.interface";
 import httpStatus from "http-status";
-import { IQuery } from "../../interfaces";
-import { ScheduleWhereInput } from "../../../generated/prisma/models";
+import type { IQuery } from "../../interfaces";
+import type { ScheduleWhereInput } from "../../../generated/prisma/models";
 import { ScheduleStatus } from "../../../generated/prisma/enums";
 
 const createSchedule = async (

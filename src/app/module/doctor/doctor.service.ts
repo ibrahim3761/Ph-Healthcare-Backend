@@ -13,7 +13,7 @@ import { cloudinary } from "../../lib/cloudinary";
 import { transporter } from "../../lib/nodemailer";
 import { prisma } from "../../lib/prisma";
 import { redisClient } from "../../lib/redis";
-import {
+import type {
 	IApplyAsDoctorPayload,
 	IApproveDoctorPayload,
 	IUpdateDoctorProfilePayload,
@@ -21,9 +21,9 @@ import {
 } from "./doctor.interface";
 import { AppError } from "../../utils/AppError";
 import httpStatus from "http-status";
-import { RequestUser } from "../../middleware/checkAuth";
-import { DoctorWhereInput } from "../../../generated/prisma/models";
-import { IQuery } from "../../interfaces";
+import type { RequestUser } from "../../middleware/checkAuth";
+import type { DoctorWhereInput } from "../../../generated/prisma/models";
+import type { IQuery } from "../../interfaces";
 import { addDays, startOfDay } from "date-fns";
 
 const applyAsDoctor = async (
