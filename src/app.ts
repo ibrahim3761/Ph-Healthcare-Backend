@@ -48,15 +48,12 @@ app.use("/api/v1/payment", PaymentRoutes);
 app.use("/api/v1/prescription", PrescriptionRoutes);
 app.use("/api/v1/analytics", AnalyticsRoutes);
 
-
 // Api test route
 app.get("/test", async (req: Request, res: Response, next: NextFunction) => {
 	try {
-		
 		const grantIdTokenResult = await getBkashIdToken();
 
 		console.log(grantIdTokenResult);
-		
 
 		res.status(httpStatus.OK).json({
 			success: true,

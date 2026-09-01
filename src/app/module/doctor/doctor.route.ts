@@ -9,23 +9,23 @@ import { UpdateDoctorProfileValidationZodSchema } from "./doctor.validation";
 const router = Router();
 
 router.post(
-  "/apply-as-doctor",
-  upload.fields([
-    {
-      name: "resume",
-      maxCount: 1,
-    },
+	"/apply-as-doctor",
+	upload.fields([
+		{
+			name: "resume",
+			maxCount: 1,
+		},
 
-    {
-      name: "additionalFiles",
-      maxCount: 10,
-    },
-  ]),
-  DoctorController.applyAsDoctor,
+		{
+			name: "additionalFiles",
+			maxCount: 10,
+		},
+	]),
+	DoctorController.applyAsDoctor,
 );
 router.post(
-  "/apply-as-doctor/verify-email",
-  DoctorController.verifyDoctorEmail,
+	"/apply-as-doctor/verify-email",
+	DoctorController.verifyDoctorEmail,
 );
 
 router.post(
@@ -53,14 +53,8 @@ router.get(
 	DoctorController.getAvailableDoctorByTodaysSchedule,
 );
 
-router.get(
-	"/public/all-doctors",
-	DoctorController.getAllDoctorsListPublic,
-);
+router.get("/public/all-doctors", DoctorController.getAllDoctorsListPublic);
 
-router.get(
-	"/public/:doctorId",
-	DoctorController.getSingleDoctorPublicProfile,
-);
+router.get("/public/:doctorId", DoctorController.getSingleDoctorPublicProfile);
 
 export const DoctorRoutes = router;

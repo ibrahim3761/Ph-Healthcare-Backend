@@ -6,7 +6,7 @@ import { AppointmentServices } from "./appointment.service";
 
 const bookAppointment = catchAsync(async (req: Request, res: Response) => {
 	const payload = req.body;
-	const user = req.user!
+	const user = req.user!;
 	const result = await AppointmentServices.bookAppointment(payload, user);
 	sendResponse(res, {
 		statusCode: httpStatus.OK,
@@ -18,7 +18,7 @@ const bookAppointment = catchAsync(async (req: Request, res: Response) => {
 
 const payAppointment = catchAsync(async (req: Request, res: Response) => {
 	const payload = req.body;
-	const user = req.user!
+	const user = req.user!;
 	const result = await AppointmentServices.payAppointment(payload, user);
 	sendResponse(res, {
 		statusCode: httpStatus.OK,
@@ -26,23 +26,26 @@ const payAppointment = catchAsync(async (req: Request, res: Response) => {
 		message: "Appointment Payment Initiated successfully",
 		data: result,
 	});
-}); 
-
-const bookAppointmentCallback = catchAsync(async (req: Request, res: Response) => {
-	console.log(req.query, "req.query");
-	
-	const {redirectUrl} = await AppointmentServices.bookAppointmentCallback(req.query);
-
-
-	res.redirect(redirectUrl);
-
-	// sendResponse(res, {
-	// 	statusCode: httpStatus.OK,
-	// 	success: true,
-	// 	message: "User profile fetched successfully",
-	// 	data: result,
-	// });
 });
+
+const bookAppointmentCallback = catchAsync(
+	async (req: Request, res: Response) => {
+		console.log(req.query, "req.query");
+
+		const { redirectUrl } = await AppointmentServices.bookAppointmentCallback(
+			req.query,
+		);
+
+		res.redirect(redirectUrl);
+
+		// sendResponse(res, {
+		// 	statusCode: httpStatus.OK,
+		// 	success: true,
+		// 	message: "User profile fetched successfully",
+		// 	data: result,
+		// });
+	},
+);
 
 const cancelAppointment = catchAsync(async (req: Request, res: Response) => {
 	const payload = req.body;
@@ -54,7 +57,7 @@ const cancelAppointment = catchAsync(async (req: Request, res: Response) => {
 		message: "Appointment Cancelled and Refunded successfully",
 		data: result,
 	});
-}); 
+});
 
 const updateAppointmentStatus = catchAsync(
 	async (req: Request, res: Response) => {
@@ -140,9 +143,9 @@ const getSingleAppointment = catchAsync(async (req: Request, res: Response) => {
 });
 
 export const AppointmentController = {
-    bookAppointment,
-    payAppointment,
-    bookAppointmentCallback,
+	bookAppointment,
+	payAppointment,
+	bookAppointmentCallback,
 	cancelAppointment,
 	updateAppointmentStatus,
 	getMyAppointments,
