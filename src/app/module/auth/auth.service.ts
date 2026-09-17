@@ -49,6 +49,10 @@ const registerPatient = async (payload: IRegisterPatientPayload) => {
 
 	const expirationSeconds = 5 * 60;
 
+	if(config.node_env === "development") {
+		console.log(`OTP for ${email}: ${otpValue}`);
+	}
+
 	await redisClient.set(otpKey, otpValue, {
 		expiration: {
 			type: "EX",
